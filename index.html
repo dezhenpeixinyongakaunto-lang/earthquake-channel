@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>EARTHQUAKE LIVE｜地震監視室</title>
+<style>
+:root{color-scheme:dark;--bg:#07111f;--panel:#101f33;--line:#263b55;--muted:#9bb0c8;--red:#ef4444}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(145deg,#07111f,#10243b);color:#edf6ff;font-family:system-ui,-apple-system,"Yu Gothic",Meiryo,sans-serif;padding:18px}
+main{max-width:1100px;margin:auto}.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.brand{font-weight:900;letter-spacing:.12em}.live{color:#86efac;border:1px solid #276749;border-radius:20px;padding:5px 11px;font-size:12px}
+h1{font-size:clamp(25px,5vw,40px);margin:8px 0}.sub{color:var(--muted);margin:0 0 18px}
+.grid{display:grid;grid-template-columns:1.5fr 1fr;gap:14px}.panel{background:rgba(16,31,51,.94);border:1px solid var(--line);border-radius:16px;padding:15px;box-shadow:0 10px 30px #0003}
+.panel h2{font-size:16px;margin:0 0 12px}.mapwrap{padding:0;overflow:hidden}#map{height:480px;width:100%;background:radial-gradient(ellipse at center,#1b3955,#0b1b2d);display:block}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}.stat{background:#0a1728;border:1px solid var(--line);border-radius:12px;padding:12px}.stat small{color:var(--muted);display:block}.stat strong{font-size:23px;display:block;margin-top:4px}
+.latest{border-left:4px solid var(--red);padding:10px 12px;background:#0a1728;border-radius:8px;line-height:1.8}.muted{color:var(--muted)}button{background:#dc2626;color:white;border:0;border-radius:9px;padding:10px 13px;font-weight:700;cursor:pointer}button.secondary{background:#29415d}button:disabled{opacity:.5;cursor:not-allowed}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}#history{max-height:430px;overflow:auto}.item{padding:11px 4px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px;align-items:center}.item:last-child{border:0}.item b{display:block}.item small{color:var(--muted)}.empty{color:var(--muted);padding:18px 4px}
+.notice{font-size:12px;color:var(--muted);line-height:1.6;margin-top:12px}footer{color:#7890aa;font-size:12px;margin:16px 2px}
+.maplabel{fill:#a9c4df;font-size:12px}.island{fill:#244d70;stroke:#78a9cf;stroke-width:2;stroke-linejoin:round}.quake{fill:#ff4545;stroke:#fff;stroke-width:2}.quake.old{fill:#fbbf24}.mapdot{filter:drop-shadow(0 0 7px #ff4545)}
+@media(max-width:800px){.grid{grid-template-columns:1fr}#map{height:380px}.stats{grid-template-columns:repeat(3,1fr)}}
+</style></head>
+<body><main>
+<div class="top"><div class="brand">🌏 EARTHQUAKE LIVE / PERSONAL DESK</div><span class="live">● 自動監視</span></div>
+<h1>日本地震監視システム</h1><p class="sub">最新の地震情報を地図・速報・履歴で確認</p>
+<div class="stats"><div class="stat"><small>最新の最大震度</small><strong id="maxScale">--</strong></div><div class="stat"><small>マグニチュード</small><strong id="magnitude">--</strong></div><div class="stat"><small>24時間の地震</small><strong id="count">--</strong></div></div>
+<div class="grid">
+<section class="panel mapwrap">
+<svg id="map" viewBox="0 0 700 480" role="img" aria-label="日本列島の模式地図">
+<defs><pattern id="grid" width="35" height="35" patternUnits="userSpaceOnUse"><path d="M35 0H0V35" fill="none" stroke="#31506c" stroke-width="1" opacity=".45"/></pattern></defs>
+<rect width="700" height="480" fill="url(#grid)"/>
+<g id="japan">
+<!-- 日本列島の概略シルエット（模式図） -->
+<path class="island" d="M510 40 L545 58 555 85 540 108 518 120 505 151 482 171 470 198 445 214 430 245 408 257 396 285 370 302 354 329 330 344 318 372 294 390 280 418 259 431 245 411 257 384 270 360 279 334 297 315 307 287 325 266 337 240 355 220 369 194 390 174 407 148 430 126 450 97 475 76 Z"/>
+<path class="island" d="M205 245 L228 251 240 270 231 291 214 306 195 300 185 281 190 260 Z"/>
+<path class="island" d="M160 300 L180 308 184 324 169 337 151 330 145 314 Z"/>
+<path class="island" d="M120 344 L142 351 147 365 130 377 111 367 Z"/>
+<path class="island" d="M75 392 L96 396 101 409 85 420 68 411 Z"/>
+<path class="island" d="M510 40 L530 26 550 30 559 45 545 58 Z"/>
+<text class="maplabel" x="500" y="18">北海道</text><text class="maplabel" x="315" y="450">本州・四国・九州（模式図）</text>
+</g><g id="markers"></g>
+<text x="18" y="28" class="maplabel">日本列島 / 震源地マップ</text><text x="18" y="458" class="maplabel" id="mapNote">地震情報を待っています</text>
+</svg>
+</section>
+<section class="panel">
+<h2>🔴 最新に発生した地震</h2><div id="latest" class="latest">地震情報を読み込み中…</div>
+<div class="actions"><button id="speak">▶ ニュースを読み上げ</button><button id="stop" class="secondary">読み上げ停止</button></div>
+<p class="notice" id="voiceStatus">日本語音声はブラウザ内蔵の音声を使用します。※ブラウザの読み上げ音声は直接MP3保存できません。</p>
+<h2 style="margin-top:22px">🗂️ 地震履歴</h2><div id="history"><div class="empty">履歴を読み込み中…</div></div>
+<div class="actions"><button class="secondary" id="refresh">↻ 最新情報を更新</button><button class="secondary" id="clear">履歴を消去</button></div>
+<p class="notice">履歴はこのブラウザ内に保存されます。別の端末・ブラウザとは共有されません。</p>
+</section></div>
+<p class="notice" id="connection">データ提供：P2P地震情報 API。通信できない場合は、ネット接続・API側の状態を確認してください。防災判断は気象庁など公式情報を優先してください。</p>
+<footer>PERSONAL EARTHQUAKE CHANNEL TOOL · 日本語表示</footer>
+</main>
+<script>
+const API='https://api.p2pquake.net/v2/history?codes=551&limit=100';
+const $=id=>document.getElementById(id);let current=null,quakes=[];
+function scaleText(n){if(n==null)return '不明';return ({10:'1',20:'2',30:'3',40:'4',45:'5弱',50:'5強',55:'6弱',60:'6強',70:'7'})[n]||String(n)}
+function dateText(d){return isNaN(d)?'日時不明':new Intl.DateTimeFormat('ja-JP',{dateStyle:'short',timeStyle:'medium'}).format(d)}
+function safeText(v){return String(v??'不明').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function coords(e){const h=e?.earthquake?.hypocenter;if(!h)return null;let lat=parseFloat(String(h.latitude).replace(/[^\d.+-]/g,'')),lon=parseFloat(String(h.longitude).replace(/[^\d.+-]/g,''));if(String(h.latitude).includes('S'))lat=-Math.abs(lat);if(String(h.longitude).includes('W'))lon=-Math.abs(lon);return Number.isFinite(lat)&&Number.isFinite(lon)&&Math.abs(lat)<=90&&Math.abs(lon)<=180?[lat,lon]:null}
+function point(lat,lon){return [350+(lon-138)*20,240-(lat-38)*22]}
+function drawMap(){
+ const g=$('markers');g.innerHTML='';const valid=quakes.filter(e=>coords(e)).slice(0,35);
+ valid.forEach((e,i)=>{const [lat,lon]=coords(e),[x,y]=point(lat,lon);if(x<0||x>700||y<0||y>480)return;const c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',x);c.setAttribute('cy',y);c.setAttribute('r',i===0?10:6);c.setAttribute('class',i===0?'quake mapdot':'quake old');const title=document.createElementNS('http://www.w3.org/2000/svg','title');title.textContent=(e.earthquake.hypocenter?.name||'震源地不明')+' 最大震度'+scaleText(e.earthquake.maxScale);c.appendChild(title);g.appendChild(c)});
+ if(valid.length){const [lat,lon]=coords(valid[0]);$('mapNote').textContent=`最新震源地：${valid[0].earthquake.hypocenter?.name||'不明'}（緯度 ${lat.toFixed(1)} / 経度 ${lon.toFixed(1)}）`;}
+}
+function makeNews(e){const q=e.earthquake,h=q.hypocenter||{},d=new Date(q.time);return `${d.getMonth()+1}月${d.getDate()}日${d.getHours()}時${d.getMinutes()}分ごろ、${h.name||'震源地不明'}を震源とする地震がありました。マグニチュードは${q.magnitude??'不明'}、最大震度は${scaleText(q.maxScale)}です。最新の詳しい情報は気象庁などの公式発表をご確認ください。`}
+function render(){
+ drawMap();const valid=quakes.filter(e=>e?.earthquake?.time);const e=valid[0];
+ if(e){current=e;const q=e.earthquake,h=q.hypocenter||{};$('latest').innerHTML=`<b>${safeText(h.name||'震源地不明')}</b><br>発生：${safeText(dateText(new Date(q.time)))}<br>最大震度：<b>${safeText(scaleText(q.maxScale))}</b><br>マグニチュード：${safeText(q.magnitude??'不明')}<br>深さ：${safeText(h.depth??'不明')} km`;$('maxScale').textContent=scaleText(q.maxScale);$('magnitude').textContent=q.magnitude??'--';}
+ else{$('latest').textContent='現在、表示できる地震情報はありません。'}
+ $('count').textContent=valid.filter(x=>new Date(x.earthquake.time).getTime()>=Date.now()-86400000).length;
+ let saved=[];try{saved=JSON.parse(localStorage.getItem('eqHistory')||'[]')}catch{}
+ const merged=[...valid.map(x=>({id:x.id,time:x.earthquake.time,name:x.earthquake.hypocenter?.name||'震源地不明',scale:scaleText(x.earthquake.maxScale),mag:x.earthquake.magnitude})),...saved],seen=new Set();
+ const hist=merged.filter(x=>{const k=x.id||x.time+x.name;if(seen.has(k))return false;seen.add(k);return true}).slice(0,100);
+ try{localStorage.setItem('eqHistory',JSON.stringify(hist))}catch{}
+ $('history').innerHTML=hist.length?hist.map(x=>`<div class="item"><div><b>${safeText(x.name)}</b><small>${safeText(dateText(new Date(x.time)))} · 震度 ${safeText(x.scale)} · M${safeText(x.mag??'不明')}</small></div><span>📍</span></div>`).join(''):'<div class="empty">まだ履歴はありません。</div>';
+}
+async function load(){
+ $('refresh').disabled=true;$('connection').textContent='地震情報に接続中…';
+ try{const r=await fetch(API,{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);const a=await r.json();if(!Array.isArray(a))throw Error('応答形式が違います');quakes=a.filter(x=>x?.code===551&&x?.earthquake?.time).sort((x,y)=>new Date(y.earthquake.time)-new Date(x.earthquake.time));render();$('connection').textContent=`接続成功：地震情報を ${new Date().toLocaleTimeString('ja-JP')} に更新しました。60秒ごとに自動更新します。`;if(!quakes.length)$('latest').textContent='APIには接続できましたが、現在表示対象の地震情報がありません。';}
+ catch(err){$('connection').textContent='接続エラー：'+(err.message||'通信に失敗しました')+'。ネット接続、ブラウザの拡張機能、API側の状態をご確認ください。';$('latest').textContent='地震情報を取得できませんでした。地図は表示しています。下の「最新情報を更新」を押して再試行してください。';$('mapNote').textContent='地震情報を取得できていません';}
+ finally{$('refresh').disabled=false}
+}
+function getVoice(){const vs=speechSynthesis.getVoices();return vs.find(v=>v.lang==='ja-JP'&&/Google 日本語|Google Japanese/i.test(v.name))||vs.find(v=>v.lang==='ja-JP')||null}
+$('speak').onclick=()=>{if(!current){$('voiceStatus').textContent='読み上げる地震情報がありません。';return}speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(makeNews(current));u.lang='ja-JP';u.rate=1;const v=getVoice();if(v){u.voice=v;$('voiceStatus').textContent='使用音声：'+v.name}else{$('voiceStatus').textContent='日本語音声が見つからないため、ブラウザ標準音声を使用します。'}speechSynthesis.speak(u)};
+$('stop').onclick=()=>speechSynthesis.cancel();$('refresh').onclick=load;
+$('clear').onclick=()=>{if(confirm('保存した地震履歴を消去しますか？')){localStorage.removeItem('eqHistory');$('history').innerHTML='<div class="empty">履歴はありません。</div>'}};
+load();setInterval(load,60000);
+</script></body></html>
